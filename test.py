@@ -3,7 +3,8 @@ import argparse
 from models.generator import Generator
 from data.vg_custom_mask import get_dataloader as get_dataloader_vg
 from data.coco_custom_mask import get_dataloader as get_dataloader_coco
-from utils.data import imagenet_deprocess_batch
+from data.shapenet_custom_mask import get_dataloader as get_dataloader_shapenet
+from utils.data import imagenet_deprocess_batch, shapenet_deprocess_batch
 from imageio import imwrite
 import os
 from pathlib import Path
@@ -19,8 +20,15 @@ def main(config):
 
     if config.dataset == 'vg':
         train_data_loader, val_data_loader = get_dataloader_vg(batch_size=config.batch_size, VG_DIR=config.vg_dir)
+        deprocess_batch = imagenet_deprocess_batch
     elif config.dataset == 'coco':
         train_data_loader, val_data_loader = get_dataloader_coco(batch_size=config.batch_size, COCO_DIR=config.coco_dir)
+        deprocess_batch = imagenet_deprocess_batch
+    elif config.dataset.startswith('shapenet'):
+        dset_id = config.dataset.split('_')[-1]
+        train_data_loader, val_data_loader = get_dataloader_shapenet(batch_size=config.batch_size, dset_id=dset_id,
+                                                                     DATA_DIR=config.shapenet_dir, testset=True)
+        deprocess_batch = lambda x: shapenet_deprocess_batch(x, dset=data_loader.dataset)
     vocab_num = train_data_loader.dataset.num_objects
 
     assert config.clstm_layers > 0
@@ -43,7 +51,7 @@ def main(config):
             output = netG(imgs, objs, boxes, masks, obj_to_img, z)
             crops_input, crops_input_rec, crops_rand, img_rec, img_rand, mu, logvar, z_rand_rec = output
 
-            img_rand = imagenet_deprocess_batch(img_rand)
+            img_rand = deprocess_batch(img_rand)
 
             # Save the generated images
             for j in range(img_rand.shape[0]):
@@ -59,6 +67,10 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='coco')
     parser.add_argument('--vg_dir', type=str, default='datasets/vg')
     parser.add_argument('--coco_dir', type=str, default='datasets/coco')
+    parser.add_argument('--shapenet_dir', type=str,
+                        default='/is/rg/avg/yliao/neural_rendering/data_blender_newbg_higher/car1_bg1;'
+                                '/is/rg/avg/yliao/neural_rendering/data_blender_newbg_higher/car2_bg1;'
+                                '/is/rg/avg/yliao/neural_rendering/data_blender_newbg_higher/car3_bg1')
 
     # Model configuration
     parser.add_argument('--batch_size', type=int, default=8)
