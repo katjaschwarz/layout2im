@@ -66,6 +66,43 @@ def imagenet_deprocess_batch(imgs, rescale=True):
     return imgs_de
 
 
+def shapenet_deprocess(dset, rescale_image=True):
+    mean = dset.normalize.mean
+    inv_mean = [-m for m in mean]
+    std = dset.normalize.std
+    inv_std = [1/s for s in std]
+    
+    transforms = [
+        T.Normalize(mean=[0, 0, 0], std=inv_std),
+        T.Normalize(mean=inv_mean, std=[1.0, 1.0, 1.0]),
+    ]
+    if rescale_image:
+        transforms.append(rescale)
+    return T.Compose(transforms)
+
+
+def shapenet_deprocess_batch(imgs, dset, rescale=True):
+    """
+    Input:
+    - imgs: FloatTensor of shape (N, C, H, W) giving preprocessed images
+
+    Output:
+    - imgs_de: ByteTensor of shape (N, C, H, W) giving deprocessed images
+      in the range [0, 255]
+    """
+    if isinstance(imgs, torch.autograd.Variable):
+        imgs = imgs.data
+    imgs = imgs.cpu().clone()
+    deprocess_fn = shapenet_deprocess(dset, rescale_image=rescale)
+    imgs_de = []
+    for i in range(imgs.size(0)):
+        img_de = deprocess_fn(imgs[i])[None]
+        img_de = img_de.mul(255).clamp(0, 255).byte()
+        imgs_de.append(img_de)
+    imgs_de = torch.cat(imgs_de, dim=0)
+    return imgs_de
+
+
 class Resize(object):
     def __init__(self, size, interp=PIL.Image.BILINEAR):
         if isinstance(size, tuple):
