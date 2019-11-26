@@ -19,7 +19,7 @@ def main(config):
     cudnn.benchmark = True
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    log_save_dir, model_save_dir, sample_save_dir, result_save_dir = prepare_dir(config.dataset, prefix=config.output_dir)
+    log_save_dir, model_save_dir, sample_save_dir, result_save_dir = prepare_dir(config.dataset)
 
     if config.dataset == 'vg':
         data_loader, _ = get_dataloader_vg(batch_size=config.batch_size, VG_DIR=config.vg_dir)
@@ -29,8 +29,7 @@ def main(config):
         deprocess_batch = imagenet_deprocess_batch
     elif config.dataset.startswith('shapenet'):
         dset_id = config.dataset.split('_')[-1]
-        data_loader, _ = get_dataloader_shapenet(batch_size=config.batch_size, dset_id=dset_id, DATA_DIR=config.shapenet_dir,
-                                                 min_objects_per_image=1, max_objects_per_image=3, bg=bg)
+        data_loader, _ = get_dataloader_shapenet(batch_size=config.batch_size, dset_id=dset_id, DATA_DIR=config.shapenet_dir)
         deprocess_batch = lambda x: shapenet_deprocess_batch(x, dset=data_loader.dataset)
 
     vocab_num = data_loader.dataset.num_objects
@@ -204,12 +203,12 @@ def main(config):
             if (i + 1) % config.tensorboard_step == 0 and config.use_tensorboard:
                 for tag, roi_value in loss.items():
                     writer.add_scalar(tag, roi_value, i+1)
-                writer.add_image('Result/crop_real', deprocess_batch(crops_input).float() / 255, i + 1)
-                writer.add_image('Result/crop_real_rec', deprocess_batch(crops_input_rec).float() / 255, i + 1)
-                writer.add_image('Result/crop_rand', deprocess_batch(crops_rand).float() / 255, i + 1)
-                writer.add_image('Result/img_real', deprocess_batch(imgs).float() / 255, i + 1)
-                writer.add_image('Result/img_real_rec', deprocess_batch(img_rec).float() / 255, i + 1)
-                writer.add_image('Result/img_fake_rand', deprocess_batch(img_rand).float() / 255, i + 1)
+                writer.add_images('Result/crop_real', deprocess_batch(crops_input).float() / 255, i + 1)
+                writer.add_images('Result/crop_real_rec', deprocess_batch(crops_input_rec).float() / 255, i + 1)
+                writer.add_images('Result/crop_rand', deprocess_batch(crops_rand).float() / 255, i + 1)
+                writer.add_images('Result/img_real', deprocess_batch(imgs).float() / 255, i + 1)
+                writer.add_images('Result/img_real_rec', deprocess_batch(img_rec).float() / 255, i + 1)
+                writer.add_images('Result/img_fake_rand', deprocess_batch(img_rand).float() / 255, i + 1)
 
             if (i + 1) % config.save_step == 0:
                 save_model(netG, model_dir=model_save_dir, appendix='netG', iter=i + 1, save_num=5, save_step=config.save_step)
@@ -229,7 +228,6 @@ if __name__ == '__main__':
     parser.add_argument('--shapenet_dir', type=str, default='/is/rg/avg/yliao/neural_rendering/data_blender_newbg_higher/car1_bg1;'
                                                             '/is/rg/avg/yliao/neural_rendering/data_blender_newbg_higher/car2_bg1;'
                                                             '/is/rg/avg/yliao/neural_rendering/data_blender_newbg_higher/car3_bg1')
-    parser.add_argument('--output_dir', type=str, default='../../results/baselines/layout2im/')
 
     parser.add_argument('--batch_size', type=int, default=8)
     parser.add_argument('--niter', type=int, default=300000, help='number of training iteration')
