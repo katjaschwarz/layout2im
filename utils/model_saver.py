@@ -4,11 +4,17 @@ import torch
 from pathlib import Path
 
 
-def prepare_dir(name):
+def prepare_dir(name, prefix=None):
     log_save_dir = 'checkpoints/{}/logs'.format(name)
     model_save_dir = 'checkpoints/{}/models'.format(name)
     sample_save_dir = 'checkpoints/{}/samples'.format(name)
     result_save_dir = 'checkpoints/{}/results'.format(name)
+    
+    if prefix is not None:
+        log_save_dir = os.path.join(prefix, log_save_dir)
+        model_save_dir = os.path.join(prefix, model_save_dir)
+        sample_save_dir = os.path.join(prefix, sample_save_dir)
+        result_save_dir = os.path.join(prefix, result_save_dir)
 
     if not Path(log_save_dir).exists(): Path(log_save_dir).mkdir(parents=True)
     if not Path(model_save_dir).exists(): Path(model_save_dir).mkdir(parents=True)
