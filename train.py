@@ -1,5 +1,6 @@
 import torch
 import argparse
+import os
 import torch.nn.functional as F
 from tensorboardX import SummaryWriter
 from models.generator import Generator
@@ -225,9 +226,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='coco')
     parser.add_argument('--vg_dir', type=str, default='datasets/vg')
     parser.add_argument('--coco_dir', type=str, default='datasets/coco')
-    parser.add_argument('--shapenet_dir', type=str, default='/is/rg/avg/yliao/neural_rendering/data_blender_newbg_higher/car1_bg1;'
-                                                            '/is/rg/avg/yliao/neural_rendering/data_blender_newbg_higher/car2_bg1;'
-                                                            '/is/rg/avg/yliao/neural_rendering/data_blender_newbg_higher/car3_bg1')
+    parser.add_argument('--shapenet_dir', type=str, default='datasets/shapenet/car')
 
     parser.add_argument('--batch_size', type=int, default=8)
     parser.add_argument('--niter', type=int, default=300000, help='number of training iteration')
@@ -255,5 +254,15 @@ if __name__ == '__main__':
     parser.add_argument('--use_tensorboard', type=str2bool, default='true')
 
     config = parser.parse_args()
+    
+    if config.dataset.startswith('shapenet'):
+        dset_id = config.dataset.split('_')[-1]
+        if dset_id == 'car':
+            config.shapenet_dir = ';'.join([os.path.join(config.shapenet_dir, f'car{i}_bg1') for i in range(1, 4)])
+        elif dset_id == 'indoor':
+            config.shapenet_dir = ';'.join([os.path.join(config.shapenet_dir, f'indoor{i}_bg2') for i in range(1, 4)])
+        else:
+            raise NotImplementedError
+    
     print(config)
     main(config)
